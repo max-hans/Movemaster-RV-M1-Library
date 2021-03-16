@@ -84,7 +84,6 @@ namespace Movemaster_RV_M1_Library
         /// <summary>
         /// Initializes the robot arm via the specified COM port
         /// </summary>
-        /// <param name="comportName"></param>
         public MovemasterRobotArm(string comportName)
         {
             if (!this.OpenComPort(comportName, out string errorMsg)) throw new Exception($"can not open robot com port '{comportName}': {errorMsg}");
