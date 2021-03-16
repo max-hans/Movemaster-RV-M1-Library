@@ -20,8 +20,14 @@ namespace Movemaster_RV_M1_Library
     /// </summary>
     public class MovemasterRobotArm : IDisposable
     {
-        private const char LF = (char)10; 
+        /// <summary>
+        /// Com port line feed character
+        /// </summary>
+        private const char LF = (char)10;
 
+        /// <summary>
+        /// Is the angle of the R-axis (hand/tool rotation) to be specified relative or absolute?
+        /// </summary>
         public enum RModes
         {
             Absolute,
@@ -34,10 +40,13 @@ namespace Movemaster_RV_M1_Library
         private bool isDisposed;
         private bool? toolIsClosed;
 
+        /// <summary>
+        /// The current position of the robot tool
+        /// </summary>
         public Position ActualPosition { get; private set; } = new Position { };
 
         /// <summary>
-        /// Is the angle of the R-axis to be specified relative or absolute?
+        /// Is the angle of the R-axis (hand/tool rotation) to be specified relative or absolute?
         /// </summary>
         public RModes RMode { get; set; } = RModes.Absolute;
 
@@ -129,12 +138,12 @@ namespace Movemaster_RV_M1_Library
         }
 
         /// <summary>
-        /// Moves the robot arm to the given absolute axis values using *interpolatePoints* linear calculated path points
+        /// Moves the robot arm to the given absolute position/axis values using *interpolatePoints* linear calculated path points
         /// </summary>
         public bool MoveTo(double x, double z, double y, int interpolatePoints = 0) => MoveTo(x, z, y, this.ActualPosition.P, this.ActualPosition.R, interpolatePoints);
 
         /// <summary>
-        /// Moves the robot arm to the given absolute axis values using the shorted path, not a linear path.
+        /// Moves the robot arm to the given absolute position/axis values using the shorted path, not a linear path.
         /// </summary>
         public bool MoveTo(double x, double z, double y, double p, double r, int interpolatePoints = 0)
         {
@@ -227,11 +236,10 @@ namespace Movemaster_RV_M1_Library
         /// Moves the robot arm to the given relative x-y-z-axis values
         /// </summary>
         /// <param name="interpolatePoints">when != 0: use linear calculated path points</param>
-        /// <returns></returns>
         public bool MoveDelta(double x, double z, double y, int interpolatePoints = 0) => MoveDelta(x, z, y, 0, 0, interpolatePoints);
 
         /// <summary>
-        /// Moves the robot arm to the given relative axis values using the shorted path, not a linear path.
+        /// Moves the robot arm to the given relative position/axis values using the shorted path, not a linear path.
         /// </summary>
         /// <param name="interpolatePoints">when != 0: use linear calculated path points</param>
         public bool MoveDelta(double x, double z, double y, double p, double r, int interpolatePoints = 0) => this.MoveTo(this.ActualPosition.X + x, this.ActualPosition.Z + z, this.ActualPosition.Y + y, this.ActualPosition.P + p, this.ActualPosition.R + r, interpolatePoints);
