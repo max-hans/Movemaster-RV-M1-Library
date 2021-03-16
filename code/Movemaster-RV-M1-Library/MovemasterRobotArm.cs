@@ -211,7 +211,6 @@ namespace Movemaster_RV_M1_Library
         /// <summary>
         /// Reads the actual position of the robot hardware and writes it into the property *ActualPosition*
         /// </summary>
-        /// <returns></returns>
         public bool UpdateActualPositionByHardware()
         {
             if (this.RMode != RModes.Absolute) throw new NotImplementedException("Update position from hardware can only be used with absolute mode!");
@@ -225,13 +224,16 @@ namespace Movemaster_RV_M1_Library
         }
 
         /// <summary>
-        /// Moves the robot arm to the given relative axis values using *interpolatePoints* linear calculated path points
+        /// Moves the robot arm to the given relative x-y-z-axis values
         /// </summary>
+        /// <param name="interpolatePoints">when != 0: use linear calculated path points</param>
+        /// <returns></returns>
         public bool MoveDelta(double x, double z, double y, int interpolatePoints = 0) => MoveDelta(x, z, y, 0, 0, interpolatePoints);
 
         /// <summary>
         /// Moves the robot arm to the given relative axis values using the shorted path, not a linear path.
         /// </summary>
+        /// <param name="interpolatePoints">when != 0: use linear calculated path points</param>
         public bool MoveDelta(double x, double z, double y, double p, double r, int interpolatePoints = 0) => this.MoveTo(this.ActualPosition.X + x, this.ActualPosition.Z + z, this.ActualPosition.Y + y, this.ActualPosition.P + p, this.ActualPosition.R + r, interpolatePoints);
 
         /// <summary>
