@@ -11,10 +11,29 @@ namespace Movemaster_RV_M1_Library
 {
     public class Position
     {
+        /// <summary>
+        /// X-Axis (left-right)
+        /// </summary>
         public double X { get; internal set; }
-        public double Y { get; internal set; }
+
+        /// <summary>
+        /// Z-Axis (forwards-backwards)
+        /// </summary>
         public double Z { get; internal set; }
+
+        /// <summary>
+        /// Y-Axis (up-down)
+        /// </summary>
+        public double Y { get; internal set; }
+
+        /// <summary>
+        /// Elbow angle
+        /// </summary>
         public double P { get; internal set; }
+        
+        /// <summary>
+        /// Hand / Tool Rotation
+        /// </summary>
         public double R { get; internal set; }
     }
 }
