@@ -1,4 +1,13 @@
-﻿using System;
+﻿// Movemaster RV M1 Library
+// https://github.com/Springwald/Movemaster-RV-M1-Library
+//
+// (C) 2021 Daniel Springwald, Bochum Germany
+// Springwald Software  -   www.springwald.de
+// daniel@springwald.de -  +49 234 298 788 46
+// All rights reserved
+// Licensed under MIT License
+
+using System;
 using System.Collections.Generic;
 using System.IO.Ports;
 using System.Text;
@@ -6,9 +15,12 @@ using System.Threading;
 
 namespace Movemaster_RV_M1_Library
 {
+    /// <summary>
+    /// Controls the robot arm via the serial port
+    /// </summary>
     public class MovemasterRobotArm : IDisposable
     {
-        private const char LF = (char)10;
+        private const char LF = (char)10; 
 
         public enum RModes
         {
@@ -19,15 +31,24 @@ namespace Movemaster_RV_M1_Library
         private readonly SerialPort comport = new SerialPort();
         private readonly StringBuilder responseStringBuffer = new StringBuilder();
         private readonly Queue<string> responses = new Queue<string>();
-
         private bool isDisposed;
         private bool? toolIsClosed;
 
         public Position ActualPosition { get; private set; } = new Position { };
+
+        /// <summary>
+        /// Is the angle of the R-axis to be specified relative or absolute?
+        /// </summary>
         public RModes RMode { get; set; } = RModes.Absolute;
 
+        /// <summary>
+        /// Write debug information to console?
+        /// </summary>
         public bool WriteToConsole { get; set; } = false;
 
+        /// <summary>
+        /// Gets or sets if the tool gripper is closes
+        /// </summary>
         public bool GripperClosed
         {
             get
@@ -51,14 +72,24 @@ namespace Movemaster_RV_M1_Library
             }
         }
 
+        /// <summary>
+        /// Initializes the robot arm via the specified COM port
+        /// </summary>
+        /// <param name="comportName"></param>
         public MovemasterRobotArm(string comportName)
         {
             if (!this.OpenComPort(comportName, out string errorMsg)) throw new Exception($"can not open robot com port '{comportName}': {errorMsg}");
             if (!this.UpdateActualPositionByHardware()) throw new Exception("can not read initial position from hardware");
         }
 
+        /// <summary>
+        /// Defines the tool length of the robot arm
+        /// </summary>
         public bool SetToolLength(int lengthInMillimeter)=> this.SendCommandNoAnswer($"TL {lengthInMillimeter}");
 
+        /// <summary>
+        /// Defines the pressure of the robot arm gripper
+        /// </summary>
         public bool SetGripPressure(int startingGrippenForce, int retainedGrippingForce, int startGrippingForceRetentionTime)
         {
             if (startingGrippenForce < 0 || startingGrippenForce > 15) return false;
@@ -67,6 +98,10 @@ namespace Movemaster_RV_M1_Library
             return SendCommandNoAnswer($"GP {startingGrippenForce}, {retainedGrippingForce}, {startGrippingForceRetentionTime}");
         }
 
+        /// <summary>
+        /// Sets the move speed of the robot arm
+        /// </summary>
+        /// <param name="speed">0=slowest, 9=fastest</param>
         public bool SetSpeed(int speed)
         {
             if (speed > 9) return false;
@@ -74,16 +109,33 @@ namespace Movemaster_RV_M1_Library
             return this.SendCommandNoAnswer($"SP {speed}");
         }
 
+        /// <summary>
+        /// Moves all axes to zero position
+        /// </summary>
         public bool MoveToHomePosition() => this.SendCommandNoAnswer("OG");
 
+        /// <summary>
+        /// Resets the control box
+        /// </summary>
         public bool Reset() => this.SendCommandNoAnswer("RS");
 
+        /// <summary>
+        /// Closes the COM port. 
+        /// Afterwards, the robot arm can no longer be controlled. Instead, a new instance of the class must be instantiated.
+        /// </summary>
         public void ShutDown()
         {
             if (comport.IsOpen) comport.Close();
         }
 
+        /// <summary>
+        /// Moves the robot arm to the given absolute axis values using *interpolatePoints* linear calculated path points
+        /// </summary>
         public bool MoveTo(double x, double z, double y, int interpolatePoints = 0) => MoveTo(x, z, y, this.ActualPosition.P, this.ActualPosition.R, interpolatePoints);
+
+        /// <summary>
+        /// Moves the robot arm to the given absolute axis values using the shorted path, not a linear path.
+        /// </summary>
         public bool MoveTo(double x, double z, double y, double p, double r, int interpolatePoints = 0)
         {
             if (this.WriteToConsole) Console.WriteLine($"{x:0.0} | {z:0.0} | {y:0.0} | {p:0.0} | {r:0.0}");
@@ -136,6 +188,9 @@ namespace Movemaster_RV_M1_Library
             this.ShutDown();
         }
 
+        /// <summary>
+        /// Sends a command and waits for the robot response
+        /// </summary>
         public bool SendCommandWithAnswer(string command, out string response)
         {
             this.comport.WriteLine(command);
@@ -153,6 +208,10 @@ namespace Movemaster_RV_M1_Library
             return success;
         }
 
+        /// <summary>
+        /// Reads the actual position of the robot hardware and writes it into the property *ActualPosition*
+        /// </summary>
+        /// <returns></returns>
         public bool UpdateActualPositionByHardware()
         {
             if (this.RMode != RModes.Absolute) throw new NotImplementedException("Update position from hardware can only be used with absolute mode!");
@@ -160,11 +219,19 @@ namespace Movemaster_RV_M1_Library
             {
                 var valueStrings = response.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
                 if (valueStrings.Length == 5) return true;
+                // TO DO
             }
             return false;
         }
 
+        /// <summary>
+        /// Moves the robot arm to the given relative axis values using *interpolatePoints* linear calculated path points
+        /// </summary>
         public bool MoveDelta(double x, double z, double y, int interpolatePoints = 0) => MoveDelta(x, z, y, 0, 0, interpolatePoints);
+
+        /// <summary>
+        /// Moves the robot arm to the given relative axis values using the shorted path, not a linear path.
+        /// </summary>
         public bool MoveDelta(double x, double z, double y, double p, double r, int interpolatePoints = 0) => this.MoveTo(this.ActualPosition.X + x, this.ActualPosition.Z + z, this.ActualPosition.Y + y, this.ActualPosition.P + p, this.ActualPosition.R + r, interpolatePoints);
 
         /// <summary>
