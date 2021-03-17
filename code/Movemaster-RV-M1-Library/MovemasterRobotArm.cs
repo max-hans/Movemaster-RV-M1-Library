@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.IO.Ports;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Movemaster_RV_M1_Library
 {
@@ -56,95 +57,88 @@ namespace Movemaster_RV_M1_Library
         public bool WriteToConsole { get; set; } = false;
 
         /// <summary>
-        /// Gets or sets if the tool gripper is closes
+        /// Gets if the tool gripper is closed
         /// </summary>
-        public bool GripperClosed
+        public async Task SetGripperClosed(bool value)
         {
-            get
+            if (this.toolIsClosed.HasValue == false || this.toolIsClosed != value)
             {
-                return this.toolIsClosed ?? false;
-            }
-            set
-            {
-                if (this.toolIsClosed.HasValue == false || this.toolIsClosed != value)
+                if (value)
                 {
-                    if (value)
-                    {
-                        this.SendCommandNoAnswer("GC");
-                    }
-                    else
-                    {
-                        this.SendCommandNoAnswer("GO");
-                    }
-                    this.toolIsClosed = value;
+                    await this.SendCommandNoAnswer("GC");
                 }
+                else
+                {
+                    await this.SendCommandNoAnswer("GO");
+                }
+                this.toolIsClosed = value;
             }
         }
 
         /// <summary>
+        /// Gets if the tool gripper is closed
+        /// </summary>
+        public bool GetGripperClosed() => this.toolIsClosed ?? false;
+
+        /// <summary>
         /// Initializes the robot arm via the specified COM port
         /// </summary>
-        public MovemasterRobotArm(string comportName)
+        public static async Task<MovemasterRobotArm> CreateAsync(string comportName)
         {
-            if (!this.OpenComPort(comportName, out string errorMsg)) throw new Exception($"can not open robot com port '{comportName}': {errorMsg}");
-            if (!this.UpdateActualPositionByHardware()) throw new Exception("can not read initial position from hardware");
+            var instance = new MovemasterRobotArm();
+            if (!instance.OpenComPort(comportName, out string errorMsg)) throw new Exception($"can not open robot com port '{comportName}': {errorMsg}");
+            if (!await instance.UpdateActualPositionByHardware()) throw new Exception("can not read initial position from hardware");
+            return instance;
         }
 
         /// <summary>
         /// Defines the tool length of the robot arm
         /// </summary>
-        public bool SetToolLength(int lengthInMillimeter)=> this.SendCommandNoAnswer($"TL {lengthInMillimeter}");
+        public async Task<bool> SetToolLength(int lengthInMillimeter) => await this.SendCommandNoAnswer($"TL {lengthInMillimeter}");
 
         /// <summary>
         /// Defines the pressure of the robot arm gripper
         /// </summary>
-        public bool SetGripPressure(int startingGrippenForce, int retainedGrippingForce, int startGrippingForceRetentionTime)
+        public async Task<bool> SetGripPressure(int startingGrippenForce, int retainedGrippingForce, int startGrippingForceRetentionTime)
         {
             if (startingGrippenForce < 0 || startingGrippenForce > 15) return false;
             if (retainedGrippingForce < 0 || retainedGrippingForce > 15) return false;
             if (startGrippingForceRetentionTime < 0 || startGrippingForceRetentionTime > 99) return false;
-            return SendCommandNoAnswer($"GP {startingGrippenForce}, {retainedGrippingForce}, {startGrippingForceRetentionTime}");
+            return await SendCommandNoAnswer($"GP {startingGrippenForce}, {retainedGrippingForce}, {startGrippingForceRetentionTime}");
         }
 
         /// <summary>
         /// Sets the move speed of the robot arm
         /// </summary>
         /// <param name="speed">0=slowest, 9=fastest</param>
-        public bool SetSpeed(int speed)
+        public async Task<bool> SetSpeed(int speed)
         {
             if (speed > 9) return false;
             if (speed < 0) return false;
-            return this.SendCommandNoAnswer($"SP {speed}");
+            return await this.SendCommandNoAnswer($"SP {speed}");
         }
 
         /// <summary>
         /// Moves all axes to zero position
         /// </summary>
-        public bool MoveToHomePosition() => this.SendCommandNoAnswer("OG");
+        public async Task<bool> MoveToHomePosition() => await this.SendCommandNoAnswer("OG");
 
         /// <summary>
         /// Resets the control box
         /// </summary>
-        public bool Reset() => this.SendCommandNoAnswer("RS");
+        public async Task<bool> Reset() => await this.SendCommandNoAnswer("RS");
 
-        /// <summary>
-        /// Closes the COM port. 
-        /// Afterwards, the robot arm can no longer be controlled. Instead, a new instance of the class must be instantiated.
-        /// </summary>
-        public void ShutDown()
-        {
-            if (comport.IsOpen) comport.Close();
-        }
+
 
         /// <summary>
         /// Moves the robot arm to the given absolute position/axis values using *interpolatePoints* linear calculated path points
         /// </summary>
-        public bool MoveTo(double x, double z, double y, int interpolatePoints = 0) => MoveTo(x, z, y, this.ActualPosition.P, this.ActualPosition.R, interpolatePoints);
+        public async Task<bool> MoveTo(double x, double z, double y, int interpolatePoints = 0) => await MoveTo(x, z, y, this.ActualPosition.P, this.ActualPosition.R, interpolatePoints);
 
         /// <summary>
         /// Moves the robot arm to the given absolute position/axis values using the shorted path, not a linear path.
         /// </summary>
-        public bool MoveTo(double x, double z, double y, double p, double r, int interpolatePoints = 0)
+        public async Task<bool> MoveTo(double x, double z, double y, double p, double r, int interpolatePoints = 0)
         {
             if (this.WriteToConsole) Console.WriteLine($"{x:0.0} | {z:0.0} | {y:0.0} | {p:0.0} | {r:0.0}");
 
@@ -162,15 +156,15 @@ namespace Movemaster_RV_M1_Library
             var success = false;
             if (interpolatePoints == 0)
             {
-                success = SendCommandNoAnswer($"MP {PS(x)}, {PS(z)}, {PS(y)}, {PS(p)}, {PS(rTarget)}");
+                success = await SendCommandNoAnswer($"MP {PS(x)}, {PS(z)}, {PS(y)}, {PS(p)}, {PS(rTarget)}");
             }
             else
             {
-                if (SendCommandNoAnswer($"PC 1"))
+                if (await SendCommandNoAnswer($"PC 1"))
                 {
-                    if (SendCommandNoAnswer($"PD 1, {PS(x)}, {PS(z)}, {PS(y)}, {PS(p)}, {PS(rTarget)}"))
+                    if (await SendCommandNoAnswer($"PD 1, {PS(x)}, {PS(z)}, {PS(y)}, {PS(p)}, {PS(rTarget)}"))
                     {
-                        if (SendCommandNoAnswer($"MS 1, {interpolatePoints}, {(this.toolIsClosed ?? false ? "C" : "O")}"))
+                        if (await SendCommandNoAnswer($"MS 1, {interpolatePoints}, {(this.toolIsClosed ?? false ? "C" : "O")}"))
                             success = true;
                     }
                 }
@@ -184,7 +178,7 @@ namespace Movemaster_RV_M1_Library
                 this.ActualPosition.P = p;
                 this.ActualPosition.R = r;
             }
-           
+
             return success;
         }
 
@@ -193,38 +187,49 @@ namespace Movemaster_RV_M1_Library
             if (this.isDisposed) return;
             this.isDisposed = true;
             this.comport.DataReceived -= new SerialDataReceivedEventHandler(this.Comport_DataReceived);
-            this.ShutDown();
+            if (comport.IsOpen) this.comport.Close();
+            this.comport.Dispose();
+        }
+
+        public class SendCommandAnswer
+        {
+            public string ResponseString { get; set; }
+            public bool Success { get; set; }
         }
 
         /// <summary>
         /// Sends a command and waits for the robot response
         /// </summary>
-        public bool SendCommandWithAnswer(string command, out string response)
+        public async Task<SendCommandAnswer> SendCommandWithAnswer(string command)
         {
             this.comport.WriteLine(command);
-            Thread.Sleep(100);
+            await Task.Delay(100);
 
-            response = null;
-            while (response == null)
+            string responseString = null;
+            while (responseString == null)
             {
-                Thread.Sleep(1);
-                response = this.ReadResponse();
+                await Task.Delay(1);
+                responseString = this.ReadResponse().Trim(new char[] { '\r', '\n', ' ' });
             }
-            response = response.Trim(new char[] { '\r', '\n', ' ' });
-            var success = this.CheckRobotErrorCode();
+            var success = await this.CheckRobotErrorCode();
             if (success == false && this.WriteToConsole) Console.WriteLine($"##ERROR for '{command}'");
-            return success;
+            return new SendCommandAnswer
+            {
+                ResponseString = responseString,
+                Success = success
+            };
         }
 
         /// <summary>
         /// Reads the actual position of the robot hardware and writes it into the property *ActualPosition*
         /// </summary>
-        public bool UpdateActualPositionByHardware()
+        public async Task<bool> UpdateActualPositionByHardware()
         {
             if (this.RMode != RModes.Absolute) throw new NotImplementedException("Update position from hardware can only be used with absolute mode!");
-            if (this.SendCommandWithAnswer("WH", out string response))
+            var response = await this.SendCommandWithAnswer("WH");
+            if (response.Success)
             {
-                var valueStrings = response.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                var valueStrings = response.ResponseString.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
                 if (valueStrings.Length == 5) return true;
                 // TO DO
             }
@@ -235,24 +240,24 @@ namespace Movemaster_RV_M1_Library
         /// Moves the robot arm to the given relative x-y-z-axis values
         /// </summary>
         /// <param name="interpolatePoints">when != 0: use linear calculated path points</param>
-        public bool MoveDelta(double x, double z, double y, int interpolatePoints = 0) => MoveDelta(x, z, y, 0, 0, interpolatePoints);
+        public async Task<bool> MoveDelta(double x, double z, double y, int interpolatePoints = 0) => await MoveDelta(x, z, y, 0, 0, interpolatePoints);
 
         /// <summary>
         /// Moves the robot arm to the given relative position/axis values using the shorted path, not a linear path.
         /// </summary>
         /// <param name="interpolatePoints">when != 0: use linear calculated path points</param>
-        public bool MoveDelta(double x, double z, double y, double p, double r, int interpolatePoints = 0) => this.MoveTo(this.ActualPosition.X + x, this.ActualPosition.Z + z, this.ActualPosition.Y + y, this.ActualPosition.P + p, this.ActualPosition.R + r, interpolatePoints);
+        public async Task<bool> MoveDelta(double x, double z, double y, double p, double r, int interpolatePoints = 0) => await this.MoveTo(this.ActualPosition.X + x, this.ActualPosition.Z + z, this.ActualPosition.Y + y, this.ActualPosition.P + p, this.ActualPosition.R + r, interpolatePoints);
 
         /// <summary>
         /// Position value to string without localization problems like "0,5" für "0.5"
         /// </summary>
         private string PS(double position) => $"{position:0.0}".Replace(",", ".");
 
-        private bool SendCommandNoAnswer(string command)
+        private async Task<bool> SendCommandNoAnswer(string command)
         {
             this.comport.WriteLine(command);
-            Thread.Sleep(100);
-            var success = this.CheckRobotErrorCode();
+            await Task.Delay(100);
+            var success = await this.CheckRobotErrorCode();
             if (success == false && this.WriteToConsole) Console.WriteLine($"##ERROR for '{command}'");
             return success;
         }
@@ -309,13 +314,13 @@ namespace Movemaster_RV_M1_Library
             }
         }
 
-        private bool CheckRobotErrorCode()
+        private async Task<bool> CheckRobotErrorCode()
         {
             this.comport.WriteLine("ER");
             string result = null;
             while (result == null)
             {
-                Thread.Sleep(1);
+                await Task.Delay(1);
                 result = this.ReadResponse();
             }
             result = result.Trim(new char[] { '\r', '\n', ' ' });
@@ -323,9 +328,9 @@ namespace Movemaster_RV_M1_Library
             {
                 case "0": return true;
                 default:
-                    Thread.Sleep(10); // beep duration
+                    await Task.Delay(10); // beep duration
                     this.comport.WriteLine("RS");
-                    Thread.Sleep(100);
+                    await Task.Delay(100);
                     return false;
             }
         }

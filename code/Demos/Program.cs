@@ -9,6 +9,7 @@
 
 using Movemaster_RV_M1_Library;
 using System;
+using System.Threading.Tasks;
 
 namespace Demos
 {
@@ -16,13 +17,19 @@ namespace Demos
     {
         static void Main(string[] args)
         {
-            using (var robot = new MovemasterRobotArm(comportName: "COM15"))
+            Demo().Wait();
+        }
+
+        private static async Task Demo()
+        {
+            using (var robot = await MovemasterRobotArm.CreateAsync(comportName: "COM15"))
             {
-                if (robot.SendCommandWithAnswer("WH", out string position))
+                var cmdResponse = await robot.SendCommandWithAnswer("WH");
+                if (cmdResponse.Success)
                 {
-                    Console.WriteLine(position);
+                    Console.WriteLine(cmdResponse.ResponseString);
                 }
-                DeloreanCameraMove(robot);
+                await DeloreanCameraMove(robot);
                 Console.WriteLine("done.");
             }
         }
@@ -31,35 +38,35 @@ namespace Demos
         /// <summary>
         /// A short camera path to move an attached camera around a miniature delorean car model
         /// </summary>
-        private static void DeloreanCameraMove(MovemasterRobotArm robot)
+        private static async Task DeloreanCameraMove(MovemasterRobotArm robot)
         {
-            robot.SetToolLength(50);
-            robot.SetSpeed(9);
-            robot.MoveTo(.0, +420.0, +290, -30, 0); // away
-            robot.MoveTo(.0, +420.0, +290, -30, 0); // away
-            robot.MoveTo(-230, 240, 40, -91, 90); // back 
-            robot.MoveTo(-150, 340, 30, -90, 45); // back side
-            robot.MoveTo(-10, 370, 30, -90, 0); // into the door
-            robot.MoveTo(-10, 370, 30, -90, 0); // into the door
-            robot.MoveTo(140, 330, 20, -90, -45); // front side
-            robot.MoveTo(200, 230, 20, -92, -90); // front side
-            robot.MoveTo(60, 230, 70, -92, -90); // direct on front
-            robot.MoveTo(70, 270, 75, -92, -90); // door up
-            robot.MoveTo(-10, 340, 70, -92, 0); // door up
-            robot.MoveTo(-10, 325, 150, -40, 0); // door up
-            robot.MoveTo(-260, 190, 140, -40, 100); // away back
-            robot.MoveTo(0, 450, 190, -50, 0); // door up
+            await robot.SetToolLength(50);
+            await robot.SetSpeed(3);
+            await robot.MoveTo(.0, +420.0, +290, -30, 0); // away
+            await robot.MoveTo(.0, +420.0, +290, -30, 0); // away
+            await robot.MoveTo(-230, 240, 40, -91, 90); // back 
+            await robot.MoveTo(-150, 340, 30, -90, 45); // back side
+            await robot.MoveTo(-10, 370, 30, -90, 0); // into the door
+            await robot.MoveTo(-10, 370, 30, -90, 0); // into the door
+            await robot.MoveTo(140, 330, 20, -90, -45); // front side
+            await robot.MoveTo(200, 230, 20, -92, -90); // front side
+            await robot.MoveTo(60, 230, 70, -92, -90); // direct on front
+            await robot.MoveTo(70, 270, 75, -92, -90); // door up
+            await robot.MoveTo(-10, 340, 70, -92, 0); // door up
+            await robot.MoveTo(-10, 325, 150, -40, 0); // door up
+            await robot.MoveTo(-260, 190, 140, -40, 100); // away back
+            await robot.MoveTo(0, 450, 190, -50, 0); // door up
         }
 
      
-        private static void Calibrate(MovemasterRobotArm robot)
+        private static async Task Test(MovemasterRobotArm robot)
         {
-            robot.Reset();
-            robot.SetGripPressure(startingGrippenForce: 15, retainedGrippingForce: 15, startGrippingForceRetentionTime: 3);
-            robot.SetSpeed(49);
-            robot.GripperClosed = true;
-            robot.MoveTo(-260, 300, 10, -90, 0);
-            robot.MoveDelta(0, 0, -10);
+            await robot.Reset();
+            await robot.SetGripPressure(startingGrippenForce: 15, retainedGrippingForce: 15, startGrippingForceRetentionTime: 3);
+            await robot.SetSpeed(4);
+            await robot.SetGripperClosed(true);
+            await robot.MoveTo(-260, 300, 10, -90, 0);
+            await robot.MoveDelta(0, 0, -10);
         }
 
     }
