@@ -11,7 +11,6 @@ using System;
 using System.Collections.Generic;
 using System.IO.Ports;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Movemaster_RV_M1_Library
@@ -21,6 +20,15 @@ namespace Movemaster_RV_M1_Library
     /// </summary>
     public class MovemasterRobotArm : IDisposable
     {
+        /// <summary>
+        /// The response of sending a command with result 
+        /// </summary>
+        public class SendCommandAnswer
+        {
+            public string ResponseString { get; set; }
+            public bool Success { get; set; }
+        }
+
         /// <summary>
         /// Com port line feed character
         /// </summary>
@@ -128,8 +136,6 @@ namespace Movemaster_RV_M1_Library
         /// </summary>
         public async Task<bool> Reset() => await this.SendCommandNoAnswer("RS");
 
-
-
         /// <summary>
         /// Moves the robot arm to the given absolute position/axis values using *interpolatePoints* linear calculated path points
         /// </summary>
@@ -160,11 +166,11 @@ namespace Movemaster_RV_M1_Library
             }
             else
             {
-                if (await SendCommandNoAnswer($"PC 1"))
+                if (await SendCommandNoAnswer($"PC 1")) // clear numbered position 1
                 {
-                    if (await SendCommandNoAnswer($"PD 1, {PS(x)}, {PS(z)}, {PS(y)}, {PS(p)}, {PS(rTarget)}"))
+                    if (await SendCommandNoAnswer($"PD 1, {PS(x)}, {PS(z)}, {PS(y)}, {PS(p)}, {PS(rTarget)}")) // need to set a temporary numbered position 1
                     {
-                        if (await SendCommandNoAnswer($"MS 1, {interpolatePoints}, {(this.toolIsClosed ?? false ? "C" : "O")}"))
+                        if (await SendCommandNoAnswer($"MS 1, {interpolatePoints}, {(this.toolIsClosed ?? false ? "C" : "O")}")) // move to temporary position 1
                             success = true;
                     }
                 }
@@ -189,12 +195,6 @@ namespace Movemaster_RV_M1_Library
             this.comport.DataReceived -= new SerialDataReceivedEventHandler(this.Comport_DataReceived);
             if (comport.IsOpen) this.comport.Close();
             this.comport.Dispose();
-        }
-
-        public class SendCommandAnswer
-        {
-            public string ResponseString { get; set; }
-            public bool Success { get; set; }
         }
 
         /// <summary>
@@ -328,7 +328,7 @@ namespace Movemaster_RV_M1_Library
             {
                 case "0": return true;
                 default:
-                    await Task.Delay(10); // beep duration
+                    await Task.Delay(10); // beep durations
                     this.comport.WriteLine("RS");
                     await Task.Delay(100);
                     return false;
