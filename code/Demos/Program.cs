@@ -1,4 +1,13 @@
-﻿using Movemaster_RV_M1_Library;
+﻿// Movemaster RV M1 Library
+// https://github.com/Springwald/Movemaster-RV-M1-Library
+//
+// (C) 2021 Daniel Springwald, Bochum Germany
+// Springwald Software  -   www.springwald.de
+// daniel@springwald.de -  +49 234 298 788 46
+// All rights reserved
+// Licensed under MIT License
+
+using Movemaster_RV_M1_Library;
 using System;
 
 namespace Demos
@@ -18,59 +27,31 @@ namespace Demos
             }
         }
 
+
+        /// <summary>
+        /// A short camera path to move an attached camera around a miniature delorean car model
+        /// </summary>
         private static void DeloreanCameraMove(MovemasterRobotArm robot)
         {
-            const bool waiting = false;
-
             robot.SetToolLength(50);
             robot.SetSpeed(9);
-            SetCameraFocus(16);
             robot.MoveTo(.0, +420.0, +290, -30, 0); // away
-            if (waiting) Console.ReadLine();
-            SetCameraFocus(16);
             robot.MoveTo(.0, +420.0, +290, -30, 0); // away
-            if (waiting) Console.ReadLine();
-            SetCameraFocus(89);
             robot.MoveTo(-230, 240, 40, -91, 90); // back 
-            if (waiting) Console.ReadLine();
-            SetCameraFocus(111);
             robot.MoveTo(-150, 340, 30, -90, 45); // back side
-            if (waiting) Console.ReadLine();
-            SetCameraFocus(91);
             robot.MoveTo(-10, 370, 30, -90, 0); // into the door
-            if (waiting) Console.ReadLine();
-            SetCameraFocus(91);
             robot.MoveTo(-10, 370, 30, -90, 0); // into the door
-            if (waiting) Console.ReadLine();
-            SetCameraFocus(132);
             robot.MoveTo(140, 330, 20, -90, -45); // front side
-            if (waiting) Console.ReadLine();
-            SetCameraFocus(101);
             robot.MoveTo(200, 230, 20, -92, -90); // front side
-            if (waiting) Console.ReadLine();
-            SetCameraFocus(127);
             robot.MoveTo(60, 230, 70, -92, -90); // direct on front
-            if (waiting) Console.ReadLine();
-            SetCameraFocus(125);
             robot.MoveTo(70, 270, 75, -92, -90); // door up
-            if (waiting) Console.ReadLine();
-            SetCameraFocus(172);
             robot.MoveTo(-10, 340, 70, -92, 0); // door up
-            if (waiting) Console.ReadLine();
-            SetCameraFocus(84);
             robot.MoveTo(-10, 325, 150, -40, 0); // door up
-            if (waiting) Console.ReadLine();
-            SetCameraFocus(33);
             robot.MoveTo(-260, 190, 140, -40, 100); // away back
-            if (waiting) Console.ReadLine();
-            SetCameraFocus(28);
             robot.MoveTo(0, 450, 190, -50, 0); // door up
         }
 
-        static void SetCameraFocus(int focus)
-        {
-        }
-
+     
         private static void Calibrate(MovemasterRobotArm robot)
         {
             robot.Reset();
