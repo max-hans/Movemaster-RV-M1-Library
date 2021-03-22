@@ -29,7 +29,8 @@ namespace Demos
                 {
                     Console.WriteLine(cmdResponse.ResponseString);
                 }
-                await DeloreanCameraMove(robot);
+                //await DeloreanCameraMove(robot);
+                await ToolPointRotation(robot);
                 Console.WriteLine("done.");
             }
         }
@@ -58,7 +59,22 @@ namespace Demos
             await robot.MoveTo(0, 450, 190, -50, 0); // door up
         }
 
-     
+        /// <summary>
+        /// rotate tool around fixed position
+        /// </summary>
+        private static async Task ToolPointRotation(MovemasterRobotArm robot)
+        {
+            await robot.SetToolLength(102);
+            await robot.SetSpeed(3);
+            var toolX = 0;
+            var toolY = 600;
+            var toolZ = 500;
+            // await robot.MoveTo(toolX, toolZ, toolY, -0, -0, 10);
+            await robot.MoveTo(toolX, toolZ, toolY, -45, -0, 10);
+            await robot.MoveTo(toolX, toolZ, toolY, 45, -0, 10);
+        }
+
+
         private static async Task Test(MovemasterRobotArm robot)
         {
             await robot.Reset();
