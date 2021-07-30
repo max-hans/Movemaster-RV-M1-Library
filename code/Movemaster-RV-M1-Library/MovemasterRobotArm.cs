@@ -159,6 +159,9 @@ namespace Movemaster_RV_M1_Library
                 default: throw new ArgumentOutOfRangeException($"{nameof(this.RMode)}:{this.RMode.ToString()}");
             }
 
+            while (rTarget > 180) rTarget -= 360;
+            while (rTarget < -180) rTarget += 360;
+
             var success = false;
             if (interpolatePoints == 0)
             {

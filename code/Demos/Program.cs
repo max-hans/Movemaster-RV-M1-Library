@@ -22,19 +22,55 @@ namespace Demos
 
         private static async Task Demo()
         {
-            using (var robot = await MovemasterRobotArm.CreateAsync(comportName: "COM15"))
+            using (var robot = await MovemasterRobotArm.CreateAsync(comportName: "COM6"))
             {
                 var cmdResponse = await robot.SendCommandWithAnswer("WH");
                 if (cmdResponse.Success)
                 {
                     Console.WriteLine(cmdResponse.ResponseString);
                 }
-                //await DeloreanCameraMove(robot);
-                await ToolPointRotation(robot);
+                // await DeloreanCameraMove(robot);
+                await GoBoardTest(robot);
                 Console.WriteLine("done.");
             }
         }
 
+
+        private static async Task GoBoardTest(MovemasterRobotArm robot)
+        {
+            await robot.SetToolLength(90);
+            await robot.SetSpeed(9);
+
+            var extender = new HorizontalExtender(
+                robot,
+                rotationCorrectionP: -90 - 1,
+                rotationCorrectionR: -186,
+                extenderLength: 229d / 2);
+
+            var height = 100;
+            var boardWidth = 264;
+            var boardDepth = 283;
+
+            var centerZ = 240 + (360 - 240) / 2;
+
+            await robot.MoveTo(.0, 280.0, +290, -90, -180, interpolatePoints: 0);
+            await robot.MoveTo(0, 280, height, -90, -180, interpolatePoints: 0);
+
+            var rangeX = 160;
+            var rangeZ = 160;
+            var step = 50;
+
+            for (int x = -rangeX; x <= rangeX; x += step)
+            {
+                for (int z = -rangeZ; z <= rangeZ; z += step)
+                {
+                    var success = await extender.MoveTo(x, centerZ + z, height, 0, interpolatePoints: 0);
+                   
+
+                }
+            }
+
+        }
 
         /// <summary>
         /// A short camera path to move an attached camera around a miniature delorean car model
@@ -42,7 +78,7 @@ namespace Demos
         private static async Task DeloreanCameraMove(MovemasterRobotArm robot)
         {
             await robot.SetToolLength(50);
-            await robot.SetSpeed(3);
+            await robot.SetSpeed(9);
             await robot.MoveTo(.0, +420.0, +290, -30, 0); // away
             await robot.MoveTo(.0, +420.0, +290, -30, 0); // away
             await robot.MoveTo(-230, 240, 40, -91, 90); // back 
