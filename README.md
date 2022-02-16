@@ -1,10 +1,12 @@
 # Movemaster RV M1 c# Library
 
-Control a Mitsubishi Movemaster EX RV-M1 via serial RS232 port in dotnet 
+Control a Mitsubishi Movemaster EX RV-M1 via serial RS232 port 
 
 ![Mitsubishi Movemaster EX RV-M1](images/Movemaster.jpg)
 
 ## How to start
+
+** in dotnet: **
 
 ```csharp
 using (var robot = await MovemasterRobotArm.CreateAsync(comportName: "COM15"))
