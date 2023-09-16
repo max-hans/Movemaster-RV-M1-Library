@@ -159,8 +159,7 @@ namespace Movemaster_RV_M1_Library
                 default: throw new ArgumentOutOfRangeException($"{nameof(this.RMode)}:{this.RMode.ToString()}");
             }
 
-            while (rTarget > 180) rTarget -= 360;
-            while (rTarget < -180) rTarget += 360;
+            rTarget = CleanUpRValue(rTarget);
 
             var success = false;
             if (interpolatePoints == 0)
@@ -191,6 +190,26 @@ namespace Movemaster_RV_M1_Library
             return success;
         }
 
+        /// <summary>
+        /// Rotates the axes relative to the actual position
+        /// </summary>
+        public async Task<bool> RotateAxis(double x, double z, double y, double p, double r)
+        {
+            if (this.WriteToConsole) Console.WriteLine($"Rotate Axes {x:0.0} | {z:0.0} | {y:0.0} | {p:0.0} | {r:0.0}");
+            if (await SendCommandNoAnswer($"MJ {PS(x)}, {PS(z)}, {PS(y)}, {PS(p)}, {PS(r)}"))
+                if (await this.UpdateActualPositionByHardware())
+                    return true;
+
+            return false;
+        }
+
+        public double CleanUpRValue(double rTarget)
+        {
+            //while (rTarget > 360) rTarget -= 360;
+            //while (rTarget < 0) rTarget += 360;
+            return rTarget;
+        }
+
         public void Dispose()
         {
             if (this.isDisposed) return;
@@ -212,7 +231,7 @@ namespace Movemaster_RV_M1_Library
             while (responseString == null)
             {
                 await Task.Delay(1);
-                responseString = this.ReadResponse().Trim(new char[] { '\r', '\n', ' ' });
+                responseString = this.ReadResponse()?.Trim(new char[] { '\r', '\n', ' ' });
             }
             var success = await this.CheckRobotErrorCode();
             if (success == false && this.WriteToConsole) Console.WriteLine($"##ERROR for '{command}'");
@@ -232,12 +251,36 @@ namespace Movemaster_RV_M1_Library
             var response = await this.SendCommandWithAnswer("WH");
             if (response.Success)
             {
+                // Console.WriteLine(response.ResponseString);
                 var valueStrings = response.ResponseString.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-                if (valueStrings.Length == 5) return true;
-                // TO DO
+                if (valueStrings.Length == 5)
+                {
+                    this.ActualPosition.X = ParseResultValueToDouble(valueStrings[0]);
+                    this.ActualPosition.Z = ParseResultValueToDouble(valueStrings[1]);
+                    this.ActualPosition.Y = ParseResultValueToDouble(valueStrings[2]);
+                    this.ActualPosition.P = ParseResultValueToDouble(valueStrings[3]);
+                    this.ActualPosition.R = ParseResultValueToDouble(valueStrings[4]);
+                    return true;
+                }
+                else
+                {
+                    Console.WriteLine($"##ERROR for 'WH': '{response.ResponseString}', valueStrings.Length=" + valueStrings.Length);
+                }
             }
             return false;
         }
+
+
+        private double ParseResultValueToDouble(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return double.NaN;
+            if (value.StartsWith(".")) value = "0" + value;
+            value = value.Replace(".", ",");
+            if (double.TryParse(value, out double result)) return result;
+            Console.WriteLine($"##ERROR parsing value to double: '{value}'");
+            return double.NaN;
+        }
+
 
         /// <summary>
         /// Moves the robot arm to the given relative x-y-z-axis values

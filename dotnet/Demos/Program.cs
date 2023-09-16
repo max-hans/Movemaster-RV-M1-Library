@@ -15,14 +15,19 @@ namespace Demos
 {
     class Program
     {
+        private const string comportName = "COM3";
+
         static void Main(string[] args)
         {
-            Demo().Wait();
+            //Demo().Wait();
+
+            var resinMoldSwinging = new DemoResinMoldSwinging(comportName);
+            resinMoldSwinging.Run().Wait();
         }
 
-        private static async Task Demo()
+        private static async Task Demo(string comportName)
         {
-            using (var robot = await MovemasterRobotArm.CreateAsync(comportName: "COM6"))
+            using (var robot = await MovemasterRobotArm.CreateAsync(comportName: comportName))
             {
                 var cmdResponse = await robot.SendCommandWithAnswer("WH"); // Read actual position from robot
                 if (cmdResponse.Success)

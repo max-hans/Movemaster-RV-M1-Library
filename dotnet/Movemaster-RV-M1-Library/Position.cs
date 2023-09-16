@@ -35,5 +35,23 @@ namespace Movemaster_RV_M1_Library
         /// Hand / Tool Rotation
         /// </summary>
         public double R { get; internal set; }
+
+        /// <summary>
+        /// All axis values as string
+        /// </summary>  
+        public string PositionAsString=> $"X:{X.ToString("0.00")} Y:{Y.ToString("0.00")} Z:{Z.ToString("0.00")} P:{P.ToString("0.00")} R:{R.ToString("0.00")}";
+        
+        public Position Clone()
+        {
+            // deep clone the object
+            return new Position()
+            {
+                X = this.X,
+                Y = this.Y,
+                Z = this.Z,
+                P = this.P,
+                R = this.R
+            };
+        }
     }
 }
