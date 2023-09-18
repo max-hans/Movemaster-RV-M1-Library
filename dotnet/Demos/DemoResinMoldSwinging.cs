@@ -33,7 +33,7 @@ namespace Demos
                 _homePosition = robot.ActualPosition.Clone();
 
                 robot.WriteToConsole = true;
-                await robot.SetSpeed(6);
+                await robot.SetSpeed(9);
                 await robot.Reset();
                 await robot.MoveToHomePosition();
                 await robot.UpdateActualPositionByHardware();
@@ -59,8 +59,9 @@ namespace Demos
 
                     Console.WriteLine("1: Fill in position with top loading.");
                     Console.WriteLine("2: Fill in position with front loading.");
-                    Console.WriteLine("3: swing for 30 minutes");
+                    Console.WriteLine("3: inital slow rotate all around 1 time");
                     Console.WriteLine("4: swing endless");
+
                     Console.WriteLine();
                     Console.WriteLine("SPACE: update position display");
                     Console.WriteLine();
@@ -84,7 +85,7 @@ namespace Demos
                                 await FillInPositionWithFrontLoading(robot);
                                 break;
                             case '3':
-                                await SwingFor30Minutes(robot);
+                                await InitalSlowRotateAllAround(robot, times: 1);
                                 break;
                             case '4':
                                 await SwingEndless(robot);
@@ -100,31 +101,19 @@ namespace Demos
             }
         }
 
-        private async Task<bool> SwingEndless(MovemasterRobotArm robot)
+        private async Task<bool> InitalSlowRotateAllAround(MovemasterRobotArm robot, int times)
         {
-            const int rotationAngle = 90;
             Console.Clear();
-            Console.WriteLine("Swinging endless.");
-            Console.WriteLine("Press any key to stop swinging.");
+            Console.WriteLine($"Inital slow rotate all around {times} times.");
+            Console.WriteLine("Press any key to interrupt.");
             robot.RMode = MovemasterRobotArm.RModes.Absolute;
             await robot.SetToolLength(0);
-            await robot.SetSpeed(4);
+            await robot.SetSpeed(2);
 
-           // var x = 0;
-           // var y = 450;
-           // var z = 300;
-
-            //if (!await robot.MoveTo(x: _homePosition.X, z: _homePosition.Z-5, y: _homePosition.Y, p: _homePosition.P, r: _horizontalNeutralAngle)) return false;
-
-            if (!await robot.UpdateActualPositionByHardware()) return false;
-            var startAngle = robot.ActualPosition.R;
             var noError = true;
-           // if (!await robot.RotateAxis(x: 0, z: 0, y: 0, p: 0, r: -rotationAngle/2)) return false;
 
-            while (!Console.KeyAvailable)
+            for (int i = 0; i < times; i++)
             {
-                noError = false;
-
                 // up
                 if (!await robot.MoveTo(x: 0, z: 271, y: 636, p: 87, r: 100)) break;
                 if (!await robot.MoveTo(x: 0, z: 321, y: 610, p: 43, r: -37)) break;
@@ -145,22 +134,59 @@ namespace Demos
                 if (!await robot.MoveTo(x: 0, z: 321, y: 510, p: 0, r: 319)) break;
                 if (Console.KeyAvailable) break;
 
-                //// up
-                //if (!await robot.MoveTo(x: 0, z: 68.5, y: 717.7, p: 155.1, r: 310)) break;
-                //if (Console.KeyAvailable) break;
-                //if (!await robot.RotateAxis(x: 0, z: 0, y: 0, p: 0, r: -180)) break;
-                //if (Console.KeyAvailable) break;
-                //if (!await robot.RotateAxis(x: 0, z: 0, y: 0, p: 0, r: 180)) break;
-                //if (Console.KeyAvailable) break;
+                noError = true;
+            }
+            while (Console.KeyAvailable)
+                Console.ReadKey();
+            return noError;
+        }
 
-                //// center
-                //if (!await robot.MoveTo(x: _homePosition.X, z: _homePosition.Z-5, y: _homePosition.Y, p: _homePosition.P, r: _horizontalNeutralAngle)) return false;
-                //if (Console.KeyAvailable) break;
-                //// rotate in center
-                //if (!await robot.RotateAxis(x: 0, z: 0, y: 0, p: 0, r: -180)) break;
-                //if (Console.KeyAvailable) break;
-                //if (!await robot.RotateAxis(x: 0, z: 0, y: 0, p: 0, r: 180)) break;
-                //if (Console.KeyAvailable) break;
+        private async Task<bool> SwingEndless(MovemasterRobotArm robot)
+        {
+
+            var rotationAnglePerSwing = 30;
+            var minRotationAngle = -37;
+            var maxRotationAngle = 319;
+            bool up = false;
+
+            Console.Clear();
+            Console.WriteLine("Swinging endless.");
+            Console.WriteLine("Press any key to stop swinging.");
+            robot.RMode = MovemasterRobotArm.RModes.Absolute;
+            await robot.SetToolLength(0);
+            await robot.SetSpeed(6);
+
+            var noError = true;
+            var angle = minRotationAngle;
+
+            while (!Console.KeyAvailable)
+            {
+                noError = false;
+                angle += rotationAnglePerSwing;
+                if (angle > maxRotationAngle)
+                {
+                    angle = maxRotationAngle;
+                    rotationAnglePerSwing = -rotationAnglePerSwing;
+                }
+                if (angle < minRotationAngle)
+                {
+                    angle = minRotationAngle;
+                    rotationAnglePerSwing = -rotationAnglePerSwing;
+                }
+
+                up = !up;
+                if (up)
+                {
+                    // up
+                    if (!await robot.MoveTo(x: 0, z: 271, y: 636, p: 87, r: angle)) break;
+                    Console.WriteLine(angle);
+                }
+                else
+                {
+                    // down
+                    if (!await robot.MoveTo(x: 0, z: 320, y: 381, p: -93, r: angle)) break;
+                }
+                if (Console.KeyAvailable) break;
 
                 noError = true;
             }
