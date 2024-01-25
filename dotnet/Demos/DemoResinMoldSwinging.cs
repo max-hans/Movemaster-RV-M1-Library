@@ -33,7 +33,7 @@ namespace Demos
                 _homePosition = robot.ActualPosition.Clone();
 
                 robot.WriteToConsole = true;
-                await robot.SetSpeed(9);
+                await robot.SetSpeed(5);
                 await robot.Reset();
                 await robot.MoveToHomePosition();
                 await robot.UpdateActualPositionByHardware();
@@ -108,7 +108,7 @@ namespace Demos
             Console.WriteLine("Press any key to interrupt.");
             robot.RMode = MovemasterRobotArm.RModes.Absolute;
             await robot.SetToolLength(0);
-            await robot.SetSpeed(2);
+            await robot.SetSpeed(4);
 
             var noError = true;
 
@@ -154,7 +154,7 @@ namespace Demos
             Console.WriteLine("Press any key to stop swinging.");
             robot.RMode = MovemasterRobotArm.RModes.Absolute;
             await robot.SetToolLength(0);
-            await robot.SetSpeed(6);
+            await robot.SetSpeed(9);
 
             var noError = true;
             var angle = minRotationAngle;
