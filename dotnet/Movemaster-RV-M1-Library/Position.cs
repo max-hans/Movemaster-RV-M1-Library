@@ -17,14 +17,14 @@ namespace Movemaster_RV_M1_Library
         public double X { get; internal set; }
 
         /// <summary>
-        /// Z-Axis (forwards-backwards)
-        /// </summary>
-        public double Z { get; internal set; }
-
-        /// <summary>
         /// Y-Axis (up-down)
         /// </summary>
         public double Y { get; internal set; }
+
+        /// <summary>
+        /// Z-Axis (forwards-backwards)
+        /// </summary>
+        public double Z { get; internal set; }
 
         /// <summary>
         /// Elbow angle
@@ -41,6 +41,20 @@ namespace Movemaster_RV_M1_Library
         /// </summary>  
         public string PositionAsString=> $"X:{X.ToString("0.00")} Y:{Y.ToString("0.00")} Z:{Z.ToString("0.00")} P:{P.ToString("0.00")} R:{R.ToString("0.00")}";
         
+
+        public Position()
+        {
+        }
+
+        public Position(double x, double y, double z, double p, double r)
+        {
+            this.X = x;
+            this.Y = y;
+            this.Z = z;
+            this.P = p;
+            this.R = r;
+        }
+
         public Position Clone()
         {
             // deep clone the object

@@ -10,6 +10,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO.Ports;
+using System.Net.Security;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -25,8 +26,8 @@ namespace Movemaster_RV_M1_Library
         /// </summary>
         public class SendCommandAnswer
         {
-            public string ResponseString { get; set; }
-            public bool Success { get; set; }
+            public required string ResponseString { get; set; }
+            public required bool Success { get; set; }
         }
 
         /// <summary>
@@ -34,30 +35,12 @@ namespace Movemaster_RV_M1_Library
         /// </summary>
         private const char LF = (char)10;
 
-        /// <summary>
-        /// Is the angle of the R-axis (hand/tool rotation) to be specified relative or absolute?
-        /// </summary>
-        public enum RModes
-        {
-            Absolute,
-            Relative
-        }
-
         private readonly SerialPort comport = new SerialPort();
         private readonly StringBuilder responseStringBuffer = new StringBuilder();
         private readonly Queue<string> responses = new Queue<string>();
         private bool isDisposed;
         private bool? toolIsClosed;
-
-        /// <summary>
-        /// The current position of the robot tool
-        /// </summary>
-        public Position ActualPosition { get; private set; } = new Position { };
-
-        /// <summary>
-        /// Is the angle of the R-axis (hand/tool rotation) to be specified relative or absolute?
-        /// </summary>
-        public RModes RMode { get; set; } = RModes.Absolute;
+        private Position? _actualPosition = null;
 
         /// <summary>
         /// Write debug information to console?
@@ -89,12 +72,20 @@ namespace Movemaster_RV_M1_Library
         public bool GetGripperClosed() => this.toolIsClosed ?? false;
 
         /// <summary>
+        /// use MovemasterRobotArm.CreateAsync(string comportName) instead
+        /// </summary>
+        private MovemasterRobotArm()
+        {
+        }
+
+
+        /// <summary>
         /// Initializes the robot arm via the specified COM port
         /// </summary>
         public static async Task<MovemasterRobotArm> CreateAsync(string comportName)
         {
             var instance = new MovemasterRobotArm();
-            if (!instance.OpenComPort(comportName, out string errorMsg)) throw new Exception($"can not open robot com port '{comportName}': {errorMsg}");
+            if (!instance.OpenComPort(comportName, out string? errorMsg)) throw new Exception($"can not open robot com port '{comportName}': {errorMsg}");
             if (!await instance.UpdateActualPositionByHardware()) throw new Exception("can not read initial position from hardware");
             return instance;
         }
@@ -127,6 +118,22 @@ namespace Movemaster_RV_M1_Library
         }
 
         /// <summary>
+        /// Gets the actual position of the robot arm tool
+        /// </summary>
+        /// <param name="forceUpdateByHardware">
+        /// if true: the actual position is read from the hardware (slow)
+        /// if false: the last known position successfull send to the robot is returned (fast). If you move the robot arm by hand, the position is not updated.
+        /// </param>
+        /// <returns>the actual position</returns>
+        public async Task<Position?> GetActualPosition(bool forceUpdateByHardware) {
+            if (_actualPosition == null) throw new Exception("Actual position not set");
+            if (forceUpdateByHardware == true && await this.UpdateActualPositionByHardware() == false)
+                return null;
+
+            return _actualPosition.Clone();
+        }
+
+        /// <summary>
         /// Moves all axes to zero position
         /// </summary>
         public async Task<bool> MoveToHomePosition() => await this.SendCommandNoAnswer("OG");
@@ -139,38 +146,34 @@ namespace Movemaster_RV_M1_Library
         /// <summary>
         /// Moves the robot arm to the given absolute position/axis values using *interpolatePoints* linear calculated path points
         /// </summary>
-        public async Task<bool> MoveTo(double x, double z, double y, int interpolatePoints = 0) => await MoveTo(x, z, y, this.ActualPosition.P, this.ActualPosition.R, interpolatePoints);
+        public async Task<bool> MoveTo(Position position) => await MoveTo(position.X, position.Y, position.Z, position.P, position.R);
+
+        /// <summary>
+        /// Moves the robot arm to the given absolute position/axis values using *interpolatePoints* linear calculated path points
+        /// </summary>
+        public async Task<bool> MoveTo(double x, double y, double z, int interpolatePoints = 0)
+        {
+            if (_actualPosition == null) throw new Exception("Actual position not set");
+            return await MoveTo(x, y, z, _actualPosition.P, _actualPosition.R, interpolatePoints);
+        }
 
         /// <summary>
         /// Moves the robot arm to the given absolute position/axis values using the shorted path, not a linear path.
         /// </summary>
-        public async Task<bool> MoveTo(double x, double z, double y, double p, double r, int interpolatePoints = 0)
+        public async Task<bool> MoveTo(double x, double y, double z, double p, double r, int interpolatePoints = 0)
         {
-            if (this.WriteToConsole) Console.WriteLine($"{x:0.0} | {z:0.0} | {y:0.0} | {p:0.0} | {r:0.0}");
-
-            var rTarget = r;
-            switch (this.RMode)
-            {
-                case RModes.Absolute:
-                    rTarget += Math.Atan2(x, z) * 180 / Math.PI;
-                    break;
-                case RModes.Relative:
-                    break;
-                default: throw new ArgumentOutOfRangeException($"{nameof(this.RMode)}:{this.RMode.ToString()}");
-            }
-
-            rTarget = CleanUpRValue(rTarget);
+            if (this.WriteToConsole) Console.WriteLine($"{x:0.0} | {y:0.0} | {z:0.0} | {p:0.0} | {r:0.0}");
 
             var success = false;
             if (interpolatePoints == 0)
             {
-                success = await SendCommandNoAnswer($"MP {PS(x)}, {PS(z)}, {PS(y)}, {PS(p)}, {PS(rTarget)}");
+                success = await SendCommandNoAnswer($"MP {PS(x)}, {PS(y)}, {PS(z)}, {PS(p)}, {PS(r)}");
             }
             else
             {
                 if (await SendCommandNoAnswer($"PC 1")) // clear numbered position 1
                 {
-                    if (await SendCommandNoAnswer($"PD 1, {PS(x)}, {PS(z)}, {PS(y)}, {PS(p)}, {PS(rTarget)}")) // need to set a temporary numbered position 1
+                    if (await SendCommandNoAnswer($"PD 1, {PS(x)}, {PS(y)}, {PS(z)}, {PS(p)}, {PS(r)}")) // need to set a temporary numbered position 1
                     {
                         if (await SendCommandNoAnswer($"MS 1, {interpolatePoints}, {(this.toolIsClosed ?? false ? "C" : "O")}")) // move to temporary position 1
                             success = true;
@@ -180,11 +183,16 @@ namespace Movemaster_RV_M1_Library
 
             if (success)
             {
-                this.ActualPosition.X = x;
-                this.ActualPosition.Y = y;
-                this.ActualPosition.Z = z;
-                this.ActualPosition.P = p;
-                this.ActualPosition.R = r;
+                if (_actualPosition == null)
+                    _actualPosition = new Position(x, y, z, p, r);
+                else
+                {
+                    _actualPosition.X = x;
+                    _actualPosition.Y = y;
+                    _actualPosition.Z = z;
+                    _actualPosition.P = p;
+                    _actualPosition.R = r;
+                }
             }
 
             return success;
@@ -193,18 +201,19 @@ namespace Movemaster_RV_M1_Library
         /// <summary>
         /// Rotates the axes relative to the actual position
         /// </summary>
-        public async Task<bool> RotateAxis(double x, double z, double y, double p, double r)
+        public async Task<bool> RotateAxis(double x, double y, double z, double p, double r)
         {
-            if (this.WriteToConsole) Console.WriteLine($"Rotate Axes {x:0.0} | {z:0.0} | {y:0.0} | {p:0.0} | {r:0.0}");
-            if (await SendCommandNoAnswer($"MJ {PS(x)}, {PS(z)}, {PS(y)}, {PS(p)}, {PS(r)}"))
+            if (this.WriteToConsole) Console.WriteLine($"Rotate Axes {x:0.0} | {y:0.0} | {z:0.0} | {p:0.0} | {r:0.0}");
+            if (await SendCommandNoAnswer($"MJ {PS(x)}, {PS(y)}, {PS(z)}, {PS(p)}, {PS(r)}"))
                 if (await this.UpdateActualPositionByHardware())
                     return true;
 
             return false;
         }
 
-        public double CleanUpRValue(double rTarget)
+        public double CleanUpRValue(double x, double y, double rTarget)
         {
+            rTarget += Math.Atan2(x, y) * 180 / Math.PI;
             //while (rTarget > 360) rTarget -= 360;
             //while (rTarget < 0) rTarget += 360;
             return rTarget;
@@ -227,7 +236,7 @@ namespace Movemaster_RV_M1_Library
             this.comport.WriteLine(command);
             await Task.Delay(100);
 
-            string responseString = null;
+            string? responseString = null;
             while (responseString == null)
             {
                 await Task.Delay(1);
@@ -247,7 +256,6 @@ namespace Movemaster_RV_M1_Library
         /// </summary>
         public async Task<bool> UpdateActualPositionByHardware()
         {
-            if (this.RMode != RModes.Absolute) throw new NotImplementedException("Update position from hardware can only be used with absolute mode!");
             var response = await this.SendCommandWithAnswer("WH");
             if (response.Success)
             {
@@ -255,11 +263,12 @@ namespace Movemaster_RV_M1_Library
                 var valueStrings = response.ResponseString.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
                 if (valueStrings.Length == 5)
                 {
-                    this.ActualPosition.X = ParseResultValueToDouble(valueStrings[0]);
-                    this.ActualPosition.Z = ParseResultValueToDouble(valueStrings[1]);
-                    this.ActualPosition.Y = ParseResultValueToDouble(valueStrings[2]);
-                    this.ActualPosition.P = ParseResultValueToDouble(valueStrings[3]);
-                    this.ActualPosition.R = ParseResultValueToDouble(valueStrings[4]);
+                    if (_actualPosition == null) _actualPosition = new Position();
+                    _actualPosition.X = ParseResultValueToDouble(valueStrings[0]);
+                    _actualPosition.Y = ParseResultValueToDouble(valueStrings[1]);
+                    _actualPosition.Z = ParseResultValueToDouble(valueStrings[2]);
+                    _actualPosition.P = ParseResultValueToDouble(valueStrings[3]);
+                    _actualPosition.R = ParseResultValueToDouble(valueStrings[4]);
                     return true;
                 }
                 else
@@ -286,14 +295,17 @@ namespace Movemaster_RV_M1_Library
         /// Moves the robot arm to the given relative x-y-z-axis values
         /// </summary>
         /// <param name="interpolatePoints">when != 0: use linear calculated path points</param>
-        public async Task<bool> MoveDelta(double x, double z, double y, int interpolatePoints = 0) => await MoveDelta(x, z, y, 0, 0, interpolatePoints);
+        public async Task<bool> MoveDelta(double x, double y, double z, int interpolatePoints = 0) => await MoveDelta(x, y, z, 0, 0, interpolatePoints);
 
         /// <summary>
         /// Moves the robot arm to the given relative position/axis values using the shorted path, not a linear path.
         /// </summary>
         /// <param name="interpolatePoints">when != 0: use linear calculated path points</param>
-        public async Task<bool> MoveDelta(double x, double z, double y, double p, double r, int interpolatePoints = 0) => await this.MoveTo(this.ActualPosition.X + x, this.ActualPosition.Z + z, this.ActualPosition.Y + y, this.ActualPosition.P + p, this.ActualPosition.R + r, interpolatePoints);
-
+        public async Task<bool> MoveDelta(double x, double y, double z, double p, double r, int interpolatePoints = 0)
+        {
+            if (_actualPosition == null) throw new Exception("Actual position not set");
+            return await this.MoveTo(_actualPosition.X + x, _actualPosition.Y + y, _actualPosition.Z + z, _actualPosition.P + p, _actualPosition.R + r, interpolatePoints);
+        }
         /// <summary>
         /// Position value to string without localization problems like "0,5" für "0.5"
         /// </summary>
@@ -308,7 +320,7 @@ namespace Movemaster_RV_M1_Library
             return success;
         }
 
-        private string ReadResponse()
+        private string? ReadResponse()
         {
             if (responses.Count == 0) return null;
             return responses.Dequeue();
@@ -332,7 +344,7 @@ namespace Movemaster_RV_M1_Library
             }
         }
 
-        private bool OpenComPort(string comPortName, out string errorMsg)
+        private bool OpenComPort(string comPortName, out string? errorMsg)
         {
             if (comport.IsOpen) comport.Close();
 
@@ -363,7 +375,7 @@ namespace Movemaster_RV_M1_Library
         private async Task<bool> CheckRobotErrorCode()
         {
             this.comport.WriteLine("ER");
-            string result = null;
+            string? result = null;
             while (result == null)
             {
                 await Task.Delay(1);
