@@ -38,6 +38,11 @@ namespace Movemaster_RV_M1_Library
         private readonly SerialPort comport = new SerialPort();
         private readonly StringBuilder responseStringBuffer = new StringBuilder();
         private readonly Queue<string> responses = new Queue<string>();
+
+        public delegate void SerialDataReceivedHandler(string data);
+        public event SerialDataReceivedHandler OnSerialDataReceived;
+
+
         private bool isDisposed;
         private bool? toolIsClosed;
         private Position? _actualPosition = null;
@@ -125,7 +130,8 @@ namespace Movemaster_RV_M1_Library
         /// if false: the last known position successfull send to the robot is returned (fast). If you move the robot arm by hand, the position is not updated.
         /// </param>
         /// <returns>the actual position</returns>
-        public async Task<Position?> GetActualPosition(bool forceUpdateByHardware) {
+        public async Task<Position?> GetActualPosition(bool forceUpdateByHardware)
+        {
             if (_actualPosition == null) throw new Exception("Actual position not set");
             if (forceUpdateByHardware == true && await this.UpdateActualPositionByHardware() == false)
                 return null;
@@ -329,6 +335,10 @@ namespace Movemaster_RV_M1_Library
         private void Comport_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
             var data = this.comport.ReadExisting();
+
+            OnSerialDataReceived?.Invoke(data);
+
+
             foreach (char c in data)
             {
                 if (c == LF)
