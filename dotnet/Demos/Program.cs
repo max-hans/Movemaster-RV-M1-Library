@@ -19,10 +19,10 @@ namespace Demos
 
         static void Main(string[] args)
         {
-            //Demo().Wait();
+            Demo(comportName).Wait();
 
-            var resinMoldSwinging = new DemoResinMoldSwinging(comportName);
-            resinMoldSwinging.Run().Wait();
+            /* var resinMoldSwinging = new DemoResinMoldSwinging(comportName);
+            resinMoldSwinging.Run().Wait(); */
         }
 
         private static async Task Demo(string comportName)
