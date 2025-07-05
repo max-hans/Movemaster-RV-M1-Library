@@ -221,6 +221,25 @@ namespace MovemasterHttpServer.Controllers
                 return BadRequest(new { success = false, message = ex.Message });
             }
         }
+        
+        // Move to absolute position
+        [HttpPost("move-path")]
+        public async Task<IActionResult> MovePath([FromBody] MovePathRequest request)
+        {
+            try
+            {
+                CheckInitialized();
+
+                bool success = await _robot.MovePath(
+                    request.Positions);
+
+                return Ok(new { success });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
 
         // Move relative distance (delta)
         [HttpPost("move-delta")]
@@ -419,6 +438,11 @@ namespace MovemasterHttpServer.Controllers
         public double Pitch { get; set; }
         public double Roll { get; set; }
         public int InterpolatePoints { get; set; } = 0;
+    }
+
+    public class MovePathRequest
+    {
+        public List<Position> Positions { get; set; }
     }
 
     public class MoveDeltaRequest
