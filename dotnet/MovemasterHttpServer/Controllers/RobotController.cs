@@ -12,10 +12,12 @@ namespace MovemasterHttpServer.Controllers
     {
         private static MovemasterRobotArm _robot;
         private readonly RobotSerialService _serialService;
+        private readonly ILogger<RobotController> _logger;
 
-        public RobotController(RobotSerialService serialService)
+        public RobotController(RobotSerialService serialService, ILogger<RobotController> logger)
         {
             _serialService = serialService;
+            _logger = logger;
         }
         private static bool _isInitialized = false;
         private static readonly object _lock = new object();
@@ -36,7 +38,16 @@ namespace MovemasterHttpServer.Controllers
                     if (!_isInitialized)
                     {
                         string comPort = request?.ComPort ?? "COM3";
-                        _robot = MovemasterRobotArm.CreateAsync(comPort).Result;
+                        
+                        // Read environment variable for robot logging
+                        bool enableRobotLogging = false;
+                        string? robotLoggingEnv = Environment.GetEnvironmentVariable("ROBOT_ENABLE_LOGGING");
+                        if (!string.IsNullOrEmpty(robotLoggingEnv))
+                        {
+                            bool.TryParse(robotLoggingEnv, out enableRobotLogging);
+                        }
+                        
+                        _robot = MovemasterRobotArm.CreateAsync(comPort, enableRobotLogging).Result;
 
                         if (_robot != null)
                         {
@@ -364,23 +375,6 @@ namespace MovemasterHttpServer.Controllers
             }
         }
 
-        // Enable/disable console output
-        [HttpPost("console-output")]
-        public IActionResult SetConsoleOutput([FromBody] ConsoleOutputRequest request)
-        {
-            try
-            {
-                CheckInitialized();
-
-                _robot.WriteToConsole = request.Enabled;
-                return Ok(new { success = true });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { success = false, message = ex.Message });
-            }
-        }
-
         // Send custom command with response
         [HttpPost("command")]
         public async Task<IActionResult> SendCommand([FromBody] CommandRequest request)
@@ -473,11 +467,6 @@ namespace MovemasterHttpServer.Controllers
     public class SpeedRequest
     {
         public int Speed { get; set; }
-    }
-
-    public class ConsoleOutputRequest
-    {
-        public bool Enabled { get; set; }
     }
 
     public class CommandRequest

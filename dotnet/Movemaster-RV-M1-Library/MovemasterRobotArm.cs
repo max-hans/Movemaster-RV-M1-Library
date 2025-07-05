@@ -1,4 +1,4 @@
-// Movemaster RV M1 Library
+﻿// Movemaster RV M1 Library
 // https://github.com/Springwald/Movemaster-RV-M1-Library
 //
 // (C) 2021 Daniel Springwald, Bochum Germany
@@ -87,11 +87,12 @@ namespace Movemaster_RV_M1_Library
         /// <summary>
         /// Initializes the robot arm via the specified COM port
         /// </summary>
-        public static async Task<MovemasterRobotArm> CreateAsync(string comportName)
+        public static async Task<MovemasterRobotArm> CreateAsync(string comportName, bool writeToConsole = false)
         {
             var instance = new MovemasterRobotArm();
             if (!instance.OpenComPort(comportName, out string? errorMsg)) throw new Exception($"can not open robot com port '{comportName}': {errorMsg}");
             if (!await instance.UpdateActualPositionByHardware()) throw new Exception("can not read initial position from hardware");
+            instance.WriteToConsole = writeToConsole;
             return instance;
         }
 
@@ -143,6 +144,12 @@ namespace Movemaster_RV_M1_Library
         /// Moves all axes to zero position
         /// </summary>
         public async Task<bool> MoveToHomePosition() => await this.SendCommandNoAnswer("OG");
+
+        /// <summary>
+        /// Moves the robot to its mechanical origin position
+        /// Must be performaed immediately after power on
+        /// </summary>
+        public async Task<bool> Nest() => await this.SendCommandNoAnswer("NT");
 
         /// <summary>
         /// Resets the control box
@@ -269,6 +276,7 @@ namespace Movemaster_RV_M1_Library
         /// </summary>
         public async Task<SendCommandAnswer> SendCommandWithAnswer(string command)
         {
+            if (this.WriteToConsole) Console.WriteLine($"##SENDING WITH ANSWER: '{command}'");
             this.comport.WriteLine(command);
             await Task.Delay(100);
 
@@ -349,6 +357,7 @@ namespace Movemaster_RV_M1_Library
 
         private async Task<bool> SendCommandNoAnswer(string command)
         {
+            if (this.WriteToConsole) Console.WriteLine($"##SENDING NO ANSWER: '{command}'");
             this.comport.WriteLine(command);
             await Task.Delay(100);
             var success = await this.CheckRobotErrorCode();
