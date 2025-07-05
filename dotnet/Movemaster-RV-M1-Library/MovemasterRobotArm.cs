@@ -1,4 +1,4 @@
-﻿// Movemaster RV M1 Library
+// Movemaster RV M1 Library
 // https://github.com/Springwald/Movemaster-RV-M1-Library
 //
 // (C) 2021 Daniel Springwald, Bochum Germany
@@ -161,6 +161,36 @@ namespace Movemaster_RV_M1_Library
         {
             if (_actualPosition == null) throw new Exception("Actual position not set");
             return await MoveTo(x, y, z, _actualPosition.P, _actualPosition.R, interpolatePoints);
+        }
+
+        /// <summary>
+        /// Moves the robot arm in a path defined by a list of positions
+        /// </summary>
+        /// <param name="positions">
+        /// List of positions to move to
+        /// </param>
+        public async Task<bool> MovePath(List<Position> positions){
+
+            if (positions.Count == 0) throw new Exception("Number of positions is 0");
+            if (positions.Count > 629) throw new Exception("Number of positions exceed maximum (629)");
+
+            int i = 0;
+            foreach (var position in positions){
+                await SendCommandNoAnswer($"PD {i}, {PS(position.X)}, {PS(position.Y)}, {PS(position.Z)}, {PS(position.P)}, {PS(position.R)}");
+                i++;
+                await Task.Delay(100);
+                /* if (await MoveTo(position.X, position.Y, position.Z, position.P, position.R, interpolatePoints)){
+                } */
+            }
+
+            int numberOfPositions = positions.Count;
+
+            await SendCommandNoAnswer($"MC 0, {numberOfPositions}");
+
+
+
+            return true;
+            /* if ( // need to set a temporary numbered position 1 */
         }
 
         /// <summary>
