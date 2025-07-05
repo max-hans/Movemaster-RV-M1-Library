@@ -185,19 +185,15 @@ namespace Movemaster_RV_M1_Library
             foreach (var position in positions){
                 await SendCommandNoAnswer($"PD {i}, {PS(position.X)}, {PS(position.Y)}, {PS(position.Z)}, {PS(position.P)}, {PS(position.R)}");
                 i++;
+                // TODO: Can we reduce or remove the delay? -> Needs further testing
                 await Task.Delay(100);
-                /* if (await MoveTo(position.X, position.Y, position.Z, position.P, position.R, interpolatePoints)){
-                } */
             }
 
             int numberOfPositions = positions.Count;
 
             await SendCommandNoAnswer($"MC 0, {numberOfPositions}");
 
-
-
             return true;
-            /* if ( // need to set a temporary numbered position 1 */
         }
 
         /// <summary>
