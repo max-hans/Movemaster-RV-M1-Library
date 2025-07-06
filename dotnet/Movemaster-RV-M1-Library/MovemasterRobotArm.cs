@@ -179,7 +179,7 @@ namespace Movemaster_RV_M1_Library
         public async Task<bool> MovePath(List<Position> positions){
 
             if (positions.Count == 0) throw new Exception("Number of positions is 0");
-            if (positions.Count > 629) throw new Exception("Number of positions exceed maximum (629)");
+            if (positions.Count > 99) throw new Exception("Number of positions exceed maximum (99)");
 
             int i = 0;
             foreach (var position in positions){
