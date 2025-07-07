@@ -3,6 +3,7 @@ using Movemaster_RV_M1_Library;
 using MovemasterHttpServer.Services;
 using System;
 using System.Threading.Tasks;
+using System.Text.Json.Serialization;
 
 namespace MovemasterHttpServer.Controllers
 {
@@ -414,74 +415,103 @@ namespace MovemasterHttpServer.Controllers
     // Request models
     public class ConnectionRequest
     {
+        [JsonPropertyName("comPort")]
         public string ComPort { get; set; }
     }
 
     public class MoveToRequest
     {
+        [JsonPropertyName("x")]
         public double X { get; set; }
+        [JsonPropertyName("y")]
         public double Y { get; set; }
+        [JsonPropertyName("z")]
         public double Z { get; set; }
+        [JsonPropertyName("pitch")]
         public double Pitch { get; set; }
+        [JsonPropertyName("roll")]
         public double Roll { get; set; }
+        [JsonPropertyName("interpolatePoints")]
         public int InterpolatePoints { get; set; } = 0;
     }
 
     public class MoveDeltaRequest
     {
+        [JsonPropertyName("deltaX")]
         public double DeltaX { get; set; }
+        [JsonPropertyName("deltaY")]
         public double DeltaY { get; set; }
+        [JsonPropertyName("deltaZ")]
         public double DeltaZ { get; set; }
+        [JsonPropertyName("deltaP")]
         public double DeltaP { get; set; } = 0;
+        [JsonPropertyName("deltaR")]
         public double DeltaR { get; set; } = 0;
+        [JsonPropertyName("interpolatePoints")]
         public int InterpolatePoints { get; set; } = 0;
     }
 
     public class RotateAxisRequest
     {
+        [JsonPropertyName("x")]
         public double X { get; set; }
+        [JsonPropertyName("y")]
         public double Y { get; set; }
+        [JsonPropertyName("z")]
         public double Z { get; set; }
+        [JsonPropertyName("p")]
         public double P { get; set; }
+        [JsonPropertyName("r")]
         public double R { get; set; }
     }
 
     public class CleanRValueRequest
     {
+        [JsonPropertyName("x")]
         public double X { get; set; }
+        [JsonPropertyName("y")]
         public double Y { get; set; }
+        [JsonPropertyName("rTarget")]
         public double RTarget { get; set; }
     }
 
     public class GripperRequest
     {
+        [JsonPropertyName("closed")]
         public bool Closed { get; set; }
     }
 
     public class ToolLengthRequest
     {
+        [JsonPropertyName("lengthInMillimeter")]
         public int LengthInMillimeter { get; set; }
     }
 
     public class GripperPressureRequest
     {
+        [JsonPropertyName("startingGrippenForce")]
         public int StartingGrippenForce { get; set; }
+        [JsonPropertyName("retainedGrippingForce")]
         public int RetainedGrippingForce { get; set; }
+        [JsonPropertyName("startGrippingForceRetentionTime")]
         public int StartGrippingForceRetentionTime { get; set; }
     }
 
     public class SpeedRequest
     {
+        [JsonPropertyName("speed")]
         public int Speed { get; set; }
     }
 
     public class ConsoleOutputRequest
     {
+        [JsonPropertyName("enabled")]
         public bool Enabled { get; set; }
     }
 
     public class CommandRequest
     {
+        [JsonPropertyName("command")]
         public string Command { get; set; }
     }
 }
