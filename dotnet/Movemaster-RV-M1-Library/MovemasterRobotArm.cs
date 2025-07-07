@@ -241,7 +241,6 @@ namespace Movemaster_RV_M1_Library
         /// </summary>
         public async Task<SendCommandAnswer> SendCommandWithAnswer(string command)
         {
-            if (this.WriteToConsole) Console.WriteLine($"##Send command: '{command}'");
             this.comport.WriteLine(command);
             await Task.Delay(100);
 
