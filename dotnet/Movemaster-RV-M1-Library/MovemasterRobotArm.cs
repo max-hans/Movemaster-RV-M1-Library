@@ -116,6 +116,8 @@ namespace Movemaster_RV_M1_Library
         /// Sets the move speed of the robot arm
         /// </summary>
         /// <param name="speed">0=slowest, 9=fastest</param>
+        /// 
+        /// # TODO: add acceleration
         public async Task<bool> SetSpeed(int speed)
         {
             if (speed > 9) return false;
